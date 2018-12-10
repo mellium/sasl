@@ -142,9 +142,6 @@ func scramClientNext(name string, fn func() hash.Hash, m *Negotiator, challenge 
 
 		switch {
 		case iter < 0:
-			err = errors.New("Iteration count is missing")
-			return
-		case iter < 0:
 			err = errors.New("Iteration count is invalid")
 			return
 		case nonce == nil || !bytes.HasPrefix(nonce, m.Nonce()):
