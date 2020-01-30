@@ -2,6 +2,7 @@
 
 [![GoDoc](https://godoc.org/mellium.im/sasl?status.svg)](https://godoc.org/mellium.im/sasl)
 [![License](https://img.shields.io/badge/license-FreeBSD-blue.svg)](https://opensource.org/licenses/BSD-2-Clause)
+[![Issue Tracker](https://img.shields.io/github/issues/mellium/xmpp?color=blue)](https://github.com/mellium/xmpp/issues)
 
 [![Buy Me A Coffee](https://www.buymeacoffee.com/assets/img/custom_images/purple_img.png)](https://www.buymeacoffee.com/samwhited)
 [![Donate using Liberapay](https://liberapay.com/assets/widgets/donate.svg)](https://liberapay.com/SamWhited)
