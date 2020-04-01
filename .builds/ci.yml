@@ -2,7 +2,7 @@ image: freebsd/latest
 packages:
   - go
 sources:
-  - https://github.com/mellium/sasl.git
+  - https://github.com/mellium/sasl
 tasks:
   - setup: |
       go version
