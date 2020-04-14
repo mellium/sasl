@@ -43,7 +43,7 @@ func Example_plainSuccess() {
 
 	// Normally the response would come from the network, not from a client on the
 	// same machine.
-	_, resp, err = server.Step(resp)
+	_, _, err = server.Step(resp)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -87,7 +87,7 @@ func Example_plainFailure() {
 
 	// Normally the response would come from the network, not from a client on the
 	// same machine.
-	_, resp, err = server.Step(resp)
+	_, _, err = server.Step(resp)
 	if err != sasl.ErrAuthn {
 		fmt.Println(err)
 		return
