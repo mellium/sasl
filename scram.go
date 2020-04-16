@@ -108,7 +108,10 @@ func scramClientNext(name string, fn func() hash.Hash, m *Negotiator, challenge 
 	case AuthTextSent:
 		iter := -1
 		var salt, nonce []byte
-		for _, field := range bytes.Split(challenge, []byte{','}) {
+		remain := challenge
+		for {
+			var field []byte
+			field, remain = nextParam(remain)
 			if len(field) < 3 || (len(field) >= 2 && field[1] != '=') {
 				continue
 			}
@@ -137,6 +140,9 @@ func scramClientNext(name string, fn func() hash.Hash, m *Negotiator, challenge 
 				// the other end.
 				err = errors.New("Server sent reserved attribute `m'")
 				return
+			}
+			if remain == nil {
+				break
 			}
 		}
 
@@ -236,4 +242,12 @@ func scramClientNext(name string, fn func() hash.Hash, m *Negotiator, challenge 
 	}
 	err = ErrInvalidState
 	return
+}
+
+func nextParam(params []byte) ([]byte, []byte) {
+	idx := bytes.IndexByte(params, ',')
+	if idx == -1 {
+		return params, nil
+	}
+	return params[:idx], params[idx+1:]
 }
