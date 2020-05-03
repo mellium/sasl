@@ -316,6 +316,68 @@ var saslTestCases = [...]saslTest{
 			{resp: []byte("Ursel\x00Kurt\x00xipj3plmq\x00"), serverErr: true, more: false},
 		},
 	},
+	16: {
+		skipServer: true,
+		mechanism:  scram("SCRAM-SHA-256-PLUS", sha256.New),
+		clientOpts: []Option{
+			RemoteMechanisms("SCRAM-SHA-256-PLUS"),
+			Credentials(func() ([]byte, []byte, []byte) {
+				return []byte("user"), []byte("pencil"), []byte("admin")
+			}),
+			TLSState(tls.ConnectionState{TLSUnique: []byte{}}),
+		},
+		steps: []saslStep{
+			{
+				resp: []byte("p=tls-unique,a=admin,n=user,r=fyko+d2lbbFgONRv9qkxdawL"),
+				more: true,
+			},
+			{
+				challenge: []byte(`r=fyko+d2lbbFgONRv9qkxdawL%hvYDpWUa2RaTCAfuxFIlj)hNlF$k0,s=W22ZaJ0SNY7soEsUEjb6gQ==,i=4096`),
+				clientErr: true,
+			},
+		},
+	},
+	17: {
+		skipServer: true,
+		mechanism:  scram("SCRAM-SHA-256-PLUS", sha256.New),
+		clientOpts: []Option{
+			RemoteMechanisms("SCRAM-SHA-256-PLUS"),
+			Credentials(func() ([]byte, []byte, []byte) {
+				return []byte("user"), []byte("pencil"), []byte("admin")
+			}),
+			TLSState(tls.ConnectionState{TLSUnique: nil}),
+		},
+		steps: []saslStep{
+			{
+				resp: []byte("p=tls-unique,a=admin,n=user,r=fyko+d2lbbFgONRv9qkxdawL"),
+				more: true,
+			},
+			{
+				challenge: []byte(`r=fyko+d2lbbFgONRv9qkxdawL%hvYDpWUa2RaTCAfuxFIlj)hNlF$k0,s=W22ZaJ0SNY7soEsUEjb6gQ==,i=4096`),
+				clientErr: true,
+			},
+		},
+	},
+	18: {
+		skipServer: true,
+		mechanism:  scram("SCRAM-SHA-256-PLUS", sha256.New),
+		clientOpts: []Option{
+			Credentials(func() ([]byte, []byte, []byte) {
+				return []byte("user"), []byte("pencil"), []byte("admin")
+			}),
+			RemoteMechanisms("SCRAM-SHA-256-PLUS"),
+		},
+		steps: []saslStep{
+			{
+				resp: []byte("n,a=admin,n=user,r=fyko+d2lbbFgONRv9qkxdawL"),
+				more: true,
+			},
+			{
+				challenge: []byte(`r=fyko+d2lbbFgONRv9qkxdawL%hvYDpWUa2RaTCAfuxFIlj)hNlF$k0,s=W22ZaJ0SNY7soEsUEjb6gQ==,i=4096`),
+				clientErr: true,
+			},
+		},
+	},
 }
 
 func testClient(t *testing.T, client *Negotiator, tc saslTest, run int) {

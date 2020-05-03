@@ -161,22 +161,26 @@ func scramClientNext(name string, fn func() hash.Hash, m *Negotiator, challenge 
 		gs2Header := getGS2Header(name, m)
 		tlsState := m.TLSState()
 		var channelBinding []byte
-		if tlsState != nil && strings.HasSuffix(name, "-PLUS") {
+		if strings.HasSuffix(name, "-PLUS") {
+			if tlsState == nil || len(tlsState.TLSUnique) == 0 {
+				err = errors.New("sasl: SCRAM with channel binding requires a TLS connection state with valid tls-unique data")
+				return
+			}
 			channelBinding = make(
 				[]byte,
 				2+base64.StdEncoding.EncodedLen(len(gs2Header)+len(tlsState.TLSUnique)),
 			)
-			base64.StdEncoding.Encode(channelBinding[2:], append(gs2Header, tlsState.TLSUnique...))
 			channelBinding[0] = 'c'
 			channelBinding[1] = '='
+			base64.StdEncoding.Encode(channelBinding[2:], append(gs2Header, tlsState.TLSUnique...))
 		} else {
 			channelBinding = make(
 				[]byte,
 				2+base64.StdEncoding.EncodedLen(len(gs2Header)),
 			)
-			base64.StdEncoding.Encode(channelBinding[2:], gs2Header)
 			channelBinding[0] = 'c'
 			channelBinding[1] = '='
+			base64.StdEncoding.Encode(channelBinding[2:], gs2Header)
 		}
 		clientFinalMessageWithoutProof := append(channelBinding, []byte(",r=")...)
 		clientFinalMessageWithoutProof = append(clientFinalMessageWithoutProof, nonce...)
