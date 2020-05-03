@@ -17,7 +17,10 @@ import (
 )
 
 const (
-	gs2HeaderCBSupport         = "p=tls-unique,"
+	exporterLen                = 32
+	exporterLabel              = "EXPORTER-Channel-Binding"
+	gs2HeaderCBSupportUnique   = "p=tls-unique,"
+	gs2HeaderCBSupportExporter = "p=tls-exporter,"
 	gs2HeaderNoServerCBSupport = "y,"
 	gs2HeaderNoCBSupport       = "n,"
 )
@@ -30,15 +33,25 @@ var (
 // The number of random bytes to generate for a nonce.
 const noncerandlen = 16
 
-func getGS2Header(name string, n *Negotiator) (gs2Header []byte) {
+func getGS2Header(name string, n *Negotiator) []byte {
 	_, _, identity := n.Credentials()
+	tlsState := n.TLSState()
+	var err error
+	var keyingMaterial []byte
+	if tlsState != nil {
+		keyingMaterial, err = tlsState.ExportKeyingMaterial(exporterLabel, nil, exporterLen)
+	}
+	var gs2Header []byte
 	switch {
-	case n.TLSState() == nil || !strings.HasSuffix(name, "-PLUS"):
+	case tlsState == nil || !strings.HasSuffix(name, "-PLUS") || (len(tlsState.TLSUnique) == 0 && (len(keyingMaterial) == 0 || err != nil)):
 		// We do not support channel binding
 		gs2Header = []byte(gs2HeaderNoCBSupport)
-	case n.State()&RemoteCB == RemoteCB:
-		// We support channel binding and the server does too
-		gs2Header = []byte(gs2HeaderCBSupport)
+	case n.State()&RemoteCB == RemoteCB && len(tlsState.TLSUnique) != 0:
+		// We support channel binding using tls-unique and the server does too
+		gs2Header = []byte(gs2HeaderCBSupportUnique)
+	case n.State()&RemoteCB == RemoteCB && len(keyingMaterial) != 0 && err == nil:
+		// We support channel binding using tls-exporter and the server does too
+		gs2Header = []byte(gs2HeaderCBSupportExporter)
 	case n.State()&RemoteCB != RemoteCB:
 		// We support channel binding but the server does not
 		gs2Header = []byte(gs2HeaderNoServerCBSupport)
@@ -48,7 +61,7 @@ func getGS2Header(name string, n *Negotiator) (gs2Header []byte) {
 		gs2Header = append(gs2Header, identity...)
 	}
 	gs2Header = append(gs2Header, ',')
-	return
+	return gs2Header
 }
 
 func scram(name string, fn func() hash.Hash) Mechanism {
@@ -161,7 +174,16 @@ func scramClientNext(name string, fn func() hash.Hash, m *Negotiator, challenge 
 		gs2Header := getGS2Header(name, m)
 		tlsState := m.TLSState()
 		var channelBinding []byte
-		if tlsState != nil && strings.HasSuffix(name, "-PLUS") {
+		switch {
+		case tlsState != nil && strings.Contains(gs2Header, gs2HeaderCBSupportExporter):
+			keying, err := cs.ExportKeyingMaterial(exporterLabel, nil, exporterLen)
+			if err != nil {
+				return err
+			}
+			base64.StdEncoding.Encode(channelBinding[2:], append(gs2Header, tlsState.TLSUnique...))
+			channelBinding[0] = 'c'
+			channelBinding[1] = '='
+		case tlsState != nil && strings.Contains(gs2Header, gs2HeaderCBSupportUnique):
 			channelBinding = make(
 				[]byte,
 				2+base64.StdEncoding.EncodedLen(len(gs2Header)+len(tlsState.TLSUnique)),
@@ -169,7 +191,7 @@ func scramClientNext(name string, fn func() hash.Hash, m *Negotiator, challenge 
 			base64.StdEncoding.Encode(channelBinding[2:], append(gs2Header, tlsState.TLSUnique...))
 			channelBinding[0] = 'c'
 			channelBinding[1] = '='
-		} else {
+		default:
 			channelBinding = make(
 				[]byte,
 				2+base64.StdEncoding.EncodedLen(len(gs2Header)),
